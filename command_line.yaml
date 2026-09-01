@@ -8,9 +8,9 @@
     unique_id: ambery_port1
     scan_interval: 60
     command_timeout: 10
-    command_state: "sh /config/scripts/ambery_run.sh status --port 1"
-    command_on: "sh /config/scripts/ambery_run.sh on 1"
-    command_off: "sh /config/scripts/ambery_run.sh off 1"
+    command_state: "sh /config/scripts/ambery-ip-run.sh status --port 1"
+    command_on: "sh /config/scripts/ambery-ip-run.sh on 1"
+    command_off: "sh /config/scripts/ambery-ip-run.sh off 1"
     value_template: "{{ value == 'ON' }}"
     icon: >
       {% if value == 'ON' %} mdi:power-plug
@@ -21,9 +21,9 @@
     unique_id: ambery_port2
     scan_interval: 60
     command_timeout: 10
-    command_state: "sh /config/scripts/ambery_run.sh status --port 2"
-    command_on: "sh /config/scripts/ambery_run.sh on 2"
-    command_off: "sh /config/scripts/ambery_run.sh off 2"
+    command_state: "sh /config/scripts/ambery-ip-run.sh status --port 2"
+    command_on: "sh /config/scripts/ambery-ip-run.sh on 2"
+    command_off: "sh /config/scripts/ambery-ip-run.sh off 2"
     value_template: "{{ value == 'ON' }}"
     icon: >
       {% if value == 'ON' %} mdi:power-plug
