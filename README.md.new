@@ -9,7 +9,7 @@ JavaScript to log in and drive the switches programmatically.
 
 It was built specifically to expose the switches to **Home Assistant** via
 the `command_line` integration, but it's a plain CLI/Python module, so it
-runs anywhere Python 3 is available (NAS, Linux, MacOS, etc).
+runs anywhere Python 3 is available.
 
 > **Compatibility note**: confirmed working against an IP-P2. The IP-P4,
 > IP-P4S, and IP-P6 use the same web UI and control protocol as far as I've
@@ -40,10 +40,10 @@ out its entire "API":
 Per-port status codes (from the firmware's own comments):
 
 ```
-0 POWER_OFF           1 POWER_ON
-2 POWER_OFF_ACT       3 POWER_ON_ACT (transitional)
+0 POWER_OFF          1 POWER_ON
+2 POWER_OFF_ACT       3 POWER_ON_ACT        (transitional)
 4 POWER_DISABLE
-5 SHUTDOWN_ERR        (counts as ON)
+5 SHUTDOWN_ERR   (counts as ON)
 6 POWER_RESET_ACT     (counts as OFF_ACT)
 7 POWER_RESET_ERR     (counts as ON)
 8 POWER_ACTIONING
@@ -65,7 +65,7 @@ numbers, strings, and nested arrays, it parses safely with Python's
 Clone or copy `ambery-ip.py` anywhere Python 3 can reach it and the switch:
 
 ```bash
-git clone https://github.com/baylanger/ambery-ip.git
+git clone https://github.com/<you>/ambery-ip.git
 cd ambery-ip
 ```
 
@@ -79,18 +79,18 @@ overridden per invocation (handy if you manage several units with one set
 of credentials):
 
 ```bash
-export AMBERY_HOST=192.168.1.5
+export AMBERY_HOST=192.168.1.10
 export AMBERY_USER=admin
 export AMBERY_PASSWORD=your-password
 
 python3 ambery-ip.py status                    # full status as single-line JSON
-python3 ambery-ip.py status --port 1           # prints ON / OFF (exits 1 on error)
+python3 ambery-ip.py status --port 1           # prints ON / OFF (exits 1 on error) -- what HA's command_state expects
 
 python3 ambery-ip.py status --pretty           # full status as indented JSON
-python3 ambery-ip.py status --pretty --port 1  # just port 1, as indented JSON
-
 python3 ambery-ip.py status --human            # full status as plain text
-python3 ambery-ip.py status --human --port 1   # just port 1 as plain text e.g. "Port 1: ON (0.00A)"
+
+python3 ambery-ip.py status --port 1 --pretty  # just port 1, as indented JSON
+python3 ambery-ip.py status --port 1 --human   # just port 1, as plain text, e.g. "Port 1: ON (0.00A)"
 
 python3 ambery-ip.py on 1                      # turn port 1 on
 python3 ambery-ip.py off 2                     # turn port 2 off
@@ -98,11 +98,11 @@ python3 ambery-ip.py reboot 1                  # power-cycle port 1
 python3 ambery-ip.py all-on                    # turn every port on
 python3 ambery-ip.py all-off                   # turn every port off
 
-# A second unit, same credentials, different Hostname|IP and outlet count:
-python3 ambery-ip.py --host 192.168.1.15 --outlet-count 4 status
+# A second unit, same credentials, different IP and outlet count:
+python3 ambery-ip.py --host 192.168.1.20 --outlet-count 4 status
 ```
 
-Note that `--port` alone prints bare `ON`/`OFF` (what HA's `command_line`
+Note that `--port` alone prints bare `ON`/`OFF` (what HA's `command_state`
 expects); combined with `--human` or `--pretty` it prints that single port
 formatted instead.
 
@@ -126,7 +126,7 @@ behavior (same convention as `git commit --amend`).
 ```python
 from ambery_ip import AmberyRemotePower
 
-dev = AmberyRemotePower("192.168.1.5", "admin", "your-password", num_ports=2)
+dev = AmberyRemotePower("192.168.1.10", "admin", "your-password", num_ports=2)
 print(dev.get_status())
 dev.set_port(1, True)    # turn port 1 on
 dev.set_port(2, False)   # turn port 2 off
@@ -144,14 +144,14 @@ Recommended layout, keeping credentials out of anything you commit:
 
 ```
 scripts/
-├── ambery-ip.py             # Python script
-├── ambery-ip-run.sh         # wrapper
-└── ambery-ip-defaults.sh    # holds real host/user/password
+├── ambery-ip.py            # this script — safe to commit
+├── ambery-ip-run.sh         # thin wrapper — safe to commit, no secrets
+└── ambery-ip-defaults.sh    # holds real host/user/password — gitignore this
 ```
 
 `ambery-ip-defaults.sh`:
 ```bash
-export AMBERY_HOST="192.168.1.5"
+export AMBERY_HOST="192.168.1.10"
 export AMBERY_USER="admin"
 export AMBERY_PASSWORD="your-password"
 ```
@@ -185,31 +185,21 @@ chmod +x ambery-ip-run.sh
 `command_line: !include command_line.yaml`):
 ```yaml
 - switch:
-    name: Ambery Port 1 - Google Coral
+    name: Ambery Port 1
     unique_id: ambery_port1
-    scan_interval: 60
-    command_timeout: 10
-    command_state: "sh /config/scripts/ambery-ip-run.sh status --port 1"
     command_on: "sh /config/scripts/ambery-ip-run.sh on 1"
     command_off: "sh /config/scripts/ambery-ip-run.sh off 1"
+    command_state: "sh /config/scripts/ambery-ip-run.sh status --port 1"
     value_template: "{{ value == 'ON' }}"
-    icon: >
-      {% if value == 'ON' %} mdi:power-plug
-      {% else %} mdi:power-plug-off
-      {% endif %}
+    scan_interval: 30
 - switch:
-    name: Ambery Port 2 - Router
+    name: Ambery Port 2
     unique_id: ambery_port2
-    scan_interval: 60
-    command_timeout: 10
-    command_state: "sh /config/scripts/ambery-ip-run.sh status --port 2"
     command_on: "sh /config/scripts/ambery-ip-run.sh on 2"
     command_off: "sh /config/scripts/ambery-ip-run.sh off 2"
+    command_state: "sh /config/scripts/ambery-ip-run.sh status --port 2"
     value_template: "{{ value == 'ON' }}"
-    icon: >
-      {% if value == 'ON' %} mdi:power-plug
-      {% else %} mdi:power-plug-off
-      {% endif %}
+    scan_interval: 30
 ```
 
 Each poll/toggle shells out and logs in fresh (this old firmware has no
@@ -218,6 +208,10 @@ latency on every call — fine for a couple of outlets on a LAN with a
 30-second `scan_interval`, but worth knowing about if you're tempted to
 poll aggressively.
 
+Note the important thing this repo intentionally does *not* commit:
+`ambery-ip-defaults.sh` holds a plaintext password, so make sure it's in
+your `.gitignore` alongside anything else with real credentials in it.
+
 ## Security notes
 
 - No password ever passed as a CLI argument, so it won't leak through `ps`,
@@ -225,8 +219,7 @@ poll aggressively.
 - The device itself only supports plaintext HTTP auth over the LAN (no
   token/session beyond a cookie) — treat it as a LAN-only device behind
   your own network boundary, the same way you would any other legacy IoT
-  gadget with no real security model. If you need to access your Ambery
-  over Internet, consider adding nginx/caddy w/ SSL fronting your switch.
+  gadget with no real security model.
 - Change the device's default password if you haven't already; these units
   commonly ship with `admin` / `admin`.
 
@@ -250,4 +243,4 @@ finding this repo.
 
 ## License
 
-MIT
+MIT (or pick whichever you prefer — update this section before publishing).

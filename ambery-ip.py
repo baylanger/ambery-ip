@@ -57,8 +57,9 @@ Usage as a CLI (for Home Assistant command_line integration). Username and
 password are read ONLY from environment variables -- AMBERY_USER,
 AMBERY_PASSWORD -- there are no --user/--password flags, so the password
 never appears in `ps` output. Host and port count can come from the same
-environment variables (AMBERY_HOST, AMBERY_PORTS) or be overridden per call
-with --host/--ports (handy if you have several units sharing one set of
+environment variables (AMBERY_HOST, AMBERY_OUTLET_COUNT) or be overridden
+per call with --host/--outlet-count (handy if you have several units
+sharing one set of
 credentials but different IPs):
     export AMBERY_HOST=192.168.1.5
     export AMBERY_USER=admin
@@ -68,7 +69,7 @@ credentials but different IPs):
     python3 ambery-ip.py on 1
     python3 ambery-ip.py off 2
     python3 ambery-ip.py reboot 1
-    python3 ambery-ip.py --host 192.168.1.11 --ports 4 status
+    python3 ambery-ip.py --host 192.168.1.11 --outlet-count 4 status
 """
 
 import argparse
@@ -299,9 +300,9 @@ def build_device_from_args(args):
               file=sys.stderr)
         sys.exit(2)
 
-    num_ports = args.ports
+    num_ports = args.outlet_count
     if num_ports is None:
-        env_ports = os.environ.get("AMBERY_PORTS")
+        env_ports = os.environ.get("AMBERY_OUTLET_COUNT")
         num_ports = int(env_ports) if env_ports else DEFAULT_NUM_PORTS
 
     return AmberyRemotePower(host, user, password, use_https=args.https,
@@ -321,12 +322,17 @@ def main():
                      "credentials but different IPs.")
     parser.add_argument("--host", help="Device IP/hostname; overrides "
                                         "AMBERY_HOST env var if given")
-    parser.add_argument("--ports", type=int, help="Number of outlets on "
-                                                    "this unit (2 for "
-                                                    "IP-P2, presumably 4/6 "
-                                                    "for IP-P4/IP-P6); "
-                                                    "overrides AMBERY_PORTS "
-                                                    "env var, defaults to 2")
+    parser.add_argument("--outlet-count", type=int, help="Number of "
+                                                           "outlets on "
+                                                           "this unit (2 "
+                                                           "for IP-P2, "
+                                                           "presumably 4/6 "
+                                                           "for IP-P4/"
+                                                           "IP-P6); "
+                                                           "overrides "
+                                                           "AMBERY_OUTLET_"
+                                                           "COUNT env var, "
+                                                           "defaults to 2")
     parser.add_argument("--https", action="store_true",
                          help="Use https instead of http")
     parser.add_argument("--no-verify-ssl", action="store_true",
