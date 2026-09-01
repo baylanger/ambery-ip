@@ -1,0 +1,31 @@
+# This configuration exposes 2 switches to Home Assistant
+# Install the 2 scripts (.sh & .py) in config/scripts/
+
+# Add the following switch config to command_line.yaml file
+# In the configuration.yaml you need "command_line: !include command_line.yaml"
+- switch:
+    name: Ambery Port 1 - Google Coral
+    unique_id: ambery_port1
+    scan_interval: 60
+    command_timeout: 10
+    command_state: "sh /config/scripts/ambery_run.sh status --port 1"
+    command_on: "sh /config/scripts/ambery_run.sh on 1"
+    command_off: "sh /config/scripts/ambery_run.sh off 1"
+    value_template: "{{ value == 'ON' }}"
+    icon: >
+      {% if value == 'ON' %} mdi:power-plug
+      {% else %} mdi:power-plug-off
+      {% endif %}
+- switch:
+    name: Ambery Port 2 - Modem
+    unique_id: ambery_port2
+    scan_interval: 60
+    command_timeout: 10
+    command_state: "sh /config/scripts/ambery_run.sh status --port 2"
+    command_on: "sh /config/scripts/ambery_run.sh on 2"
+    command_off: "sh /config/scripts/ambery_run.sh off 2"
+    value_template: "{{ value == 'ON' }}"
+    icon: >
+      {% if value == 'ON' %} mdi:power-plug
+      {% else %} mdi:power-plug-off
+      {% endif %}
