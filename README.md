@@ -41,7 +41,7 @@ Per-port status codes (from the firmware's own comments):
 
 ```
 0 POWER_OFF           1 POWER_ON
-2 POWER_OFF_ACT       3 POWER_ON_ACT        (transitional)
+2 POWER_OFF_ACT       3 POWER_ON_ACT (transitional)
 4 POWER_DISABLE
 5 SHUTDOWN_ERR        (counts as ON)
 6 POWER_RESET_ACT     (counts as OFF_ACT)
@@ -83,14 +83,14 @@ export AMBERY_HOST=192.168.1.5
 export AMBERY_USER=admin
 export AMBERY_PASSWORD=your-password
 
-python3 ambery-ip.py status                   # full status as JSON
-python3 ambery-ip.py status --port 1          # prints ON / OFF
+python3 ambery-ip.py status                    # full status as single-line JSON
+python3 ambery-ip.py status --port 1           # prints ON / OFF (exits 1 on error)
 
-python3 ambery-ip.py status --pretty          # indented, multi-line JSON
-python3 ambery-ip.py status --port 1 --pretty # prints status as JSON
+python3 ambery-ip.py status --pretty           # full status as indented JSON
+python3 ambery-ip.py status --pretty --port 1  # just port 1, as indented JSON
 
-python3 ambery-ip.py status --human           # plain text, e.g.:
-python3 ambery-ip.py status --port 1 --human  # Port 1: ON (0.00)
+python3 ambery-ip.py status --human            # full status as plain text
+python3 ambery-ip.py status --human --port 1   # just port 1 as plain text e.g. "Port 1: ON (0.00A)"
 
 python3 ambery-ip.py on 1                      # turn port 1 on
 python3 ambery-ip.py off 2                     # turn port 2 off
@@ -98,9 +98,20 @@ python3 ambery-ip.py reboot 1                  # power-cycle port 1
 python3 ambery-ip.py all-on                    # turn every port on
 python3 ambery-ip.py all-off                   # turn every port off
 
-# A second unit, same credentials, different Hostname or IP and outlet count:
-python3 ambery-ip.py --host 192.168.1.20 --ports 4 status
+# A second unit, same credentials, different Hostname|IP and outlet count:
+python3 ambery-ip.py --host 192.168.1.15 --ports 4 status
 ```
+
+Note that `--port` alone prints bare `ON`/`OFF` (what HA's `command_line`
+expects); combined with `--human` or `--pretty` it prints that single port
+formatted instead.
+
+Also note that flags belong on the side of the subcommand that defines
+them: global flags (`--host`, `--ports`, `--https`) go *before* the
+subcommand, and subcommand-specific flags (`--port`, `--pretty`, `--human`
+on `status`) go *after* it — e.g. `ambery-ip.py --host 1.2.3.4 status
+--human`, not the other way around. This is standard `argparse` subcommand
+behavior (same convention as `git commit --amend`).
 
 | Flag / env var | Purpose |
 |---|---|
@@ -153,6 +164,23 @@ DIR="$(dirname "$0")"
 exec python3 "$DIR/ambery-ip.py" "$@"
 ```
 
+Once both files are in place, `ambery-ip-run.sh` is a drop-in stand-in for
+`python3 ambery-ip.py` that picks up the credentials in
+`ambery-ip-defaults.sh` automatically — handy for testing from the command
+line, not just for HA's benefit:
+
+```bash
+chmod +x ambery-ip-run.sh
+
+./ambery-ip-run.sh status --human       # readable status, no env vars to set
+./ambery-ip-run.sh on 1
+./ambery-ip-run.sh off 2
+./ambery-ip-run.sh reboot 1
+
+# Override just the host, reusing the same credentials — e.g. a second unit:
+./ambery-ip-run.sh --host 192.168.1.20 --ports 4 status --pretty
+```
+
 `command_line.yaml` (included from `configuration.yaml` via
 `command_line: !include command_line.yaml`):
 ```yaml
@@ -170,7 +198,7 @@ exec python3 "$DIR/ambery-ip.py" "$@"
       {% else %} mdi:power-plug-off
       {% endif %}
 - switch:
-    name: Ambery Port 2
+    name: Ambery Port 2 - Router
     unique_id: ambery_port2
     scan_interval: 60
     command_timeout: 10

@@ -337,9 +337,11 @@ def main():
     p_status = sub.add_parser("status", help="Print status as JSON "
                                                "(single line by default)")
     p_status.add_argument("--port", type=int,
-                           help="Only print this port's is_on (prints "
-                                "'ON'/'OFF' and exits 1 on error, for "
-                                "HA command_line sensor use)")
+                           help="Only show this port. Alone, prints bare "
+                                "'ON'/'OFF' (exits 1 on error) for HA "
+                                "command_line sensor use; combined with "
+                                "--human or --pretty, prints that port "
+                                "formatted instead")
     p_status.add_argument("--pretty", action="store_true",
                            help="Print indented, multi-line JSON instead "
                                 "of one line")
@@ -365,12 +367,21 @@ def main():
     try:
         if args.command == "status":
             status = dev.get_status()
-            if args.port:
+            if args.port and not args.human and not args.pretty:
+                # Bare ON/OFF/UNKNOWN -- what HA's command_state expects.
                 port = status[args.port]
                 if port["is_on"] is None:
                     print("UNKNOWN")
                     sys.exit(1)
                 print("ON" if port["is_on"] else "OFF")
+            elif args.port:
+                # --port combined with --human or --pretty: show just that
+                # one port, formatted.
+                single = {args.port: status[args.port]}
+                if args.human:
+                    print(format_status_human(single))
+                else:
+                    print(json.dumps(single, indent=2, sort_keys=True))
             elif args.human:
                 print(format_status_human(status))
             elif args.pretty:
